@@ -14,7 +14,7 @@ go install github.com/taumatix/claude-mods-go/cmd/modgo@latest
 go get github.com/taumatix/claude-mods-go/mods
 ```
 
-Requires Go 1.22+ and Claude Code with mods (2.1.290+). Tested against the release pinned in
+Requires Go 1.23+ and Claude Code with mods (2.1.290+). Tested against the release pinned in
 [UPSTREAM.md](UPSTREAM.md).
 
 ## Quickstart
