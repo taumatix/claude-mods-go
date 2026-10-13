@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-10-13
 
 - `mods`: write a Claude Code mod in Go. Typed handlers for six events, helpers for the common
   `$` calls, `Ctx.Call` for the rest, `Ctx.Next` for `next(e)`.
