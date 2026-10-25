@@ -56,6 +56,8 @@ func claude(t *testing.T, bin, plugin, prompt string) string {
 	cmd := exec.CommandContext(ctx, bin, "-p", prompt, "--plugin-dir", plugin)
 	cmd.Dir = t.TempDir()
 	cmd.Stdin = strings.NewReader("")
+	// Claude Code 2.1.283+ loads hooks modules for installed plugins only when this is set.
+	cmd.Env = append(os.Environ(), "CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1")
 	out, _ := cmd.CombinedOutput()
 	return string(out)
 }
