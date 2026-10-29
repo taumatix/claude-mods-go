@@ -7,8 +7,8 @@ version of its own. This file says which Claude Code the bridge was built and te
 - name: claude-code
   kind: npm
   package: "@anthropic-ai/claude-code"
-  version: 2.1.296
-  checked: 2026-10-26
+  version: 2.1.312
+  checked: 2026-10-29
   note: >-
     the end-to-end tests run `claude -p` against this release (mods docs describe 2.1.290+).
     The public type definitions lag the docs: `model.complete`'s result shape and the
@@ -18,7 +18,7 @@ version of its own. This file says which Claude Code the bridge was built and te
 - name: mods-documentation
   kind: literal
   value: "https://claude.dev/mods/ (read 2026-10-13)"
-  checked: 2026-10-26
+  checked: 2026-10-29
   note: >-
     the validator rules the shim is shaped around: literal event names, `$` only ever
     written as `$.noun.method(` and never passed anywhere, relative imports only.

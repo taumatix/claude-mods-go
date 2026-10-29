@@ -41,7 +41,7 @@ jobs:
         with:
           node-version: 22
       - name: Install the Claude Code release pinned in UPSTREAM.md
-        run: npm install --prefix "$RUNNER_TEMP/cc" @anthropic-ai/claude-code@2.1.296
+        run: npm install --prefix "$RUNNER_TEMP/cc" @anthropic-ai/claude-code@2.1.312
       - name: End to end
         run: |
           export CLAUDE_BIN="$RUNNER_TEMP/cc/node_modules/.bin/claude"
