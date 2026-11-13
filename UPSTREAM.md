@@ -7,18 +7,18 @@ version of its own. This file says which Claude Code the bridge was built and te
 - name: claude-code
   kind: npm
   package: "@anthropic-ai/claude-code"
-  version: 2.1.318
-  checked: 2026-11-05
+  version: 2.1.325
+  checked: 2026-11-13
   note: >-
-    the end-to-end tests run `claude -p` against this release (mods docs describe 2.1.290+); re-run green against 2.1.318 on 2026-11-05.
+    the end-to-end tests run `claude -p` against this release (mods docs describe 2.1.290+); re-run green against 2.1.325 on 2026-11-13.
     The public type definitions lag the docs: `model.complete`'s result shape and the
     presence of `$.process.spawn` differ between releases, so typed results are lenient
     and the generated shim falls back from the daemon to the one-shot transport.
 
 - name: mods-documentation
   kind: literal
-  value: "https://claude.dev/mods/ (read 2026-10-13)"
-  checked: 2026-11-05
+  value: "https://claude.dev/mods/ (read 2026-11-13)"
+  checked: 2026-11-13
   note: >-
     the validator rules the shim is shaped around: literal event names, `$` only ever
     written as `$.noun.method(` and never passed anywhere, relative imports only.
