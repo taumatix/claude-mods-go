@@ -76,11 +76,19 @@ func Generate(o Options) error {
 		if err != nil {
 			return err
 		}
-		if err := write(filepath.Join(o.Dir, "bin", t.OS+"-"+t.Arch, m.Name), b, 0o755); err != nil {
+		if err := write(filepath.Join(o.Dir, "bin", t.OS+"-"+t.Arch, ExeName(m.Name, t.OS)), b, 0o755); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// ExeName is the file name of a mod binary for goos.
+func ExeName(name, goos string) string {
+	if goos == "windows" {
+		return name + ".exe"
+	}
+	return name
 }
 
 func write(path string, b []byte, mode os.FileMode) error {

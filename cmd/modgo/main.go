@@ -61,7 +61,7 @@ func build(argv []string) error {
 	}
 	defer os.RemoveAll(tmp)
 
-	host := filepath.Join(tmp, "host")
+	host := filepath.Join(tmp, modgen.ExeName("host", runtime.GOOS))
 	if err := goBuild(pkg, host, runtime.GOOS, runtime.GOARCH); err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func build(argv []string) error {
 		if !ok {
 			return fmt.Errorf("target %q: want os/arch", t)
 		}
-		bin := filepath.Join(tmp, osName+"-"+arch)
+		bin := filepath.Join(tmp, modgen.ExeName(osName+"-"+arch, osName))
 		if err := goBuild(pkg, bin, osName, arch); err != nil {
 			return err
 		}

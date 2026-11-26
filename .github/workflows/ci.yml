@@ -46,3 +46,22 @@ jobs:
         run: |
           export CLAUDE_BIN="$RUNNER_TEMP/cc/node_modules/.bin/claude"
           go test -count=1 -v ./e2e/
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: go vet ./...
+      - run: go test -count=1 ./mods ./modgen ./cmd/...
+      - name: Install the Claude Code release pinned in UPSTREAM.md
+        run: npm install --prefix "$env:RUNNER_TEMP\cc" @anthropic-ai/claude-code@2.1.332
+      - name: End to end
+        run: |
+          $env:CLAUDE_BIN = "$env:RUNNER_TEMP\cc\node_modules\.bin\claude.cmd"
+          go test -count=1 -v ./e2e/
