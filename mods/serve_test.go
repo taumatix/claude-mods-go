@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testApp() *App {
@@ -75,6 +76,112 @@ func TestDaemonRoundTripOverHTTP(t *testing.T) {
 	_ = json.Unmarshal(body, &s)
 	if s.Op != OpDone || string(s.Value) != `{"text":"HI"}` {
 		t.Fatalf("final = %+v", s)
+	}
+}
+
+// listen starts the daemon with the given idle timeout and reports its base URL
+// and a channel that yields serve's return value.
+func listen(t *testing.T, a *App, idle time.Duration) (string, <-chan error) {
+	t.Helper()
+	r, w := io.Pipe()
+	done := make(chan error, 1)
+	go func() { done <- a.serveIdle(w, "secret", idle) }()
+	line := make([]byte, 64)
+	n, err := r.Read(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return "http://" + strings.TrimSpace(strings.TrimPrefix(string(line[:n]), "LISTEN ")), done
+}
+
+func exits(t *testing.T, done <-chan error, within time.Duration) {
+	t.Helper()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("serve returned %v, want a clean exit", err)
+		}
+	case <-time.After(within):
+		t.Fatalf("daemon still running after %s", within)
+	}
+}
+
+func TestDaemonExitsWhenIdle(t *testing.T) {
+	base, done := listen(t, testApp(), 50*time.Millisecond)
+	exits(t, done, 5*time.Second)
+	if _, err := http.Post(base+"/start", "application/json", nil); err == nil {
+		t.Fatal("the port should be closed after an idle exit")
+	}
+}
+
+func TestRequestsPostponeTheIdleExit(t *testing.T) {
+	base, done := listen(t, testApp(), 300*time.Millisecond)
+	p := pipe{t}
+	for i := 0; i < 5; i++ {
+		time.Sleep(100 * time.Millisecond)
+		if res, _ := p.post(base, "/start", "wrong", Start{}); res.StatusCode != 401 {
+			t.Fatalf("round %d: got %d", i, res.StatusCode)
+		}
+	}
+	exits(t, done, 5*time.Second)
+}
+
+func TestDaemonStaysWhileARunIsLive(t *testing.T) {
+	base, done := listen(t, testApp(), 50*time.Millisecond)
+	p := pipe{t}
+	_, body := p.post(base, "/start", "secret", Start{Reg: 0, Event: "command.run", E: json.RawMessage(`{"command":"show","args":"f"}`)})
+	var s Step
+	_ = json.Unmarshal(body, &s)
+
+	select {
+	case err := <-done:
+		t.Fatalf("daemon exited with a run waiting on the shim: %v", err)
+	case <-time.After(500 * time.Millisecond):
+	}
+
+	for _, v := range []string{`"hi"`, ``} {
+		_, body = p.post(base, "/resume", "secret", Resume{Run: s.Run, CID: s.CID, OK: true, Value: json.RawMessage(v)})
+		_ = json.Unmarshal(body, &s)
+	}
+	if s.Op != OpDone {
+		t.Fatalf("final = %+v", s)
+	}
+	exits(t, done, 5*time.Second)
+}
+
+func TestAbandonedRunIsDroppedAndTheDaemonExits(t *testing.T) {
+	old := runLease
+	runLease = 100 * time.Millisecond
+	defer func() { runLease = old }()
+
+	base, done := listen(t, testApp(), 50*time.Millisecond)
+	p := pipe{t}
+	p.post(base, "/start", "secret", Start{Reg: 0, Event: "command.run", E: json.RawMessage(`{"command":"show","args":"f"}`)})
+	exits(t, done, 5*time.Second)
+}
+
+func TestNoIdleTimeoutMeansNeverExit(t *testing.T) {
+	_, done := listen(t, testApp(), 0)
+	select {
+	case err := <-done:
+		t.Fatalf("daemon exited with idle timeout disabled: %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+}
+
+func TestIdleTimeoutOption(t *testing.T) {
+	a := New("t")
+	if a.idleTimeout != DefaultIdleTimeout {
+		t.Fatalf("default = %s, want %s", a.idleTimeout, DefaultIdleTimeout)
+	}
+	if got := a.IdleTimeout(time.Second).idleTimeout; got != time.Second {
+		t.Fatalf("got %s", got)
+	}
+	if got := a.IdleTimeout(0).idleTimeout; got != 0 {
+		t.Fatalf("got %s", got)
+	}
+	if got := a.IdleTimeout(time.Millisecond).idleTimeout; got != MinIdleTimeout {
+		t.Fatalf("got %s, want it raised to %s", got, MinIdleTimeout)
 	}
 }
 

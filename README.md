@@ -66,11 +66,16 @@ See [examples/tally](examples/tally) for a mod that keeps state in `$.store`.
 | | daemon | once |
 |---|---|---|
 | Process | one Go process per session, loopback HTTP with a per-session bearer token | a process per step |
-| State between events | kept in memory | none (use `$.store`) |
+| State between events | kept in memory until the daemon exits idle (below) | none (use `$.store`) |
 | Needs | `$.process.spawn`, `$.http.fetch` | `$.process.run` |
 | Handler rule | none | deterministic: it is re-run from the top, replaying recorded answers |
 
 `auto` starts the daemon and falls back to `once` if it cannot.
+
+The daemon exits by itself after 30 minutes with no request and no handler waiting on the shim, so
+one left behind by a crashed session cannot linger. The next event starts a fresh one, which has
+lost anything the handlers kept in memory. Change it with `app.IdleTimeout(d)` (minimum 1 s) or
+pass `0` to never exit; keep state that must survive in `$.store`.
 
 ## Limits
 

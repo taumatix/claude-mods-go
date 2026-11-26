@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // TokenEnv names the environment variable carrying the daemon's bearer token.
@@ -49,8 +50,9 @@ func (a *App) Run() {
 // ---- daemon ----
 
 type liveRun struct {
-	out chan Step
-	in  chan Resume
+	out     chan Step
+	in      chan Resume
+	touched time.Time
 }
 
 func (r *liveRun) step(s Step) (Resume, error) {
@@ -58,15 +60,27 @@ func (r *liveRun) step(s Step) (Resume, error) {
 	return <-r.in, nil
 }
 
+// runLease is how long a run may wait for the shim before the daemon forgets
+// it. A shim that died mid-run would otherwise pin the daemon for ever.
+var runLease = time.Hour
+
 type daemon struct {
-	app   *App
-	token string
-	mu    sync.Mutex
-	runs  map[string]*liveRun
-	next  int
+	app      *App
+	token    string
+	mu       sync.Mutex
+	runs     map[string]*liveRun
+	next     int
+	inflight int
+	last     time.Time
 }
 
 func (a *App) serve(stdout io.Writer, token string) error {
+	return a.serveIdle(stdout, token, a.idleTimeout)
+}
+
+// serveIdle runs the daemon and returns nil once idle has passed with no
+// request in flight and no run waiting on the shim. idle <= 0 never exits.
+func (a *App) serveIdle(stdout io.Writer, token string, idle time.Duration) error {
 	if token == "" {
 		return fmt.Errorf("mods: serve needs %s set", TokenEnv)
 	}
@@ -77,19 +91,59 @@ func (a *App) serve(stdout io.Writer, token string) error {
 	if err != nil {
 		return err
 	}
-	d := &daemon{app: a, token: token, runs: map[string]*liveRun{}}
+	d := &daemon{app: a, token: token, runs: map[string]*liveRun{}, last: time.Now()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/start", d.handle(d.start))
 	mux.HandleFunc("/resume", d.handle(d.resume))
+	srv := &http.Server{Handler: mux}
+	if idle > 0 {
+		go d.reap(srv, idle)
+	}
 	fmt.Fprintf(stdout, "LISTEN %s\n", ln.Addr())
 	if f, ok := stdout.(interface{ Sync() error }); ok {
 		_ = f.Sync()
 	}
-	return http.Serve(ln, mux)
+	if err := srv.Serve(ln); err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+// reap closes srv when the daemon has been idle for idle, and forgets runs the
+// shim has not answered within runLease.
+func (d *daemon) reap(srv *http.Server, idle time.Duration) {
+	tick := idle / 4
+	if tick < time.Millisecond {
+		tick = time.Millisecond
+	}
+	for range time.Tick(tick) {
+		d.mu.Lock()
+		now := time.Now()
+		for id, r := range d.runs {
+			if now.Sub(r.touched) > runLease {
+				delete(d.runs, id)
+			}
+		}
+		done := d.inflight == 0 && len(d.runs) == 0 && now.Sub(d.last) >= idle
+		d.mu.Unlock()
+		if done {
+			_ = srv.Close()
+			return
+		}
+	}
 }
 
 func (d *daemon) handle(f func(io.Reader) (Step, int, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		d.mu.Lock()
+		d.inflight++
+		d.mu.Unlock()
+		defer func() {
+			d.mu.Lock()
+			d.inflight--
+			d.last = time.Now()
+			d.mu.Unlock()
+		}()
 		got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if r.Method != http.MethodPost || subtle.ConstantTimeCompare([]byte(got), []byte(d.token)) != 1 {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -113,7 +167,7 @@ func (d *daemon) start(body io.Reader) (Step, int, error) {
 	d.mu.Lock()
 	d.next++
 	id := strconv.Itoa(d.next)
-	run := &liveRun{out: make(chan Step), in: make(chan Resume)}
+	run := &liveRun{out: make(chan Step), in: make(chan Resume), touched: time.Now()}
 	d.runs[id] = run
 	d.mu.Unlock()
 	go func() { run.out <- d.app.execute(run, id, st) }()
@@ -137,11 +191,12 @@ func (d *daemon) resume(body io.Reader) (Step, int, error) {
 
 func (d *daemon) await(id string, run *liveRun) Step {
 	s := <-run.out
+	d.mu.Lock()
+	run.touched = time.Now()
 	if s.Op == OpDone || s.Op == OpError {
-		d.mu.Lock()
 		delete(d.runs, id)
-		d.mu.Unlock()
 	}
+	d.mu.Unlock()
 	return s
 }
 
