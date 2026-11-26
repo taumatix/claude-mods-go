@@ -10,7 +10,8 @@ import (
 )
 
 const harness = `
-const { register } = await import(process.argv[2])
+const { pathToFileURL } = await import('node:url')
+const { register } = await import(pathToFileURL(process.argv[2]).href)
 const out = []
 const handlers = []
 register((...a) => handlers.push(a[a.length - 1]), {})
