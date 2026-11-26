@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- `mods`: typed events and `OnX` methods for the remaining hooks: `session.end`, `session.stop`,
+  `session.compact`, `turn.start`, `prompt.fill`, `prompt.suggest`, `tool.describe`, `tool.offer`,
+  `command.describe`, `config.set`, `agent.spawn`, `agent.offer`. The ones with a natural filter
+  (`OnToolDescribe`, `OnToolOffer`, `OnCommandDescribe`, `OnConfigSet`, `OnAgentSpawn`,
+  `OnAgentOffer`) take it as their first argument; `""` hooks all. Shared `Origin` and `Source` types.
 - `mods`: the daemon exits after 30 minutes idle (`App.IdleTimeout`, `DefaultIdleTimeout`), so a
   daemon left behind by a dead session no longer lingers. The shim starts a new one on the next
   event.
