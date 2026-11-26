@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -40,7 +41,11 @@ func main() {
 		if err != nil {
 			return nil, err
 		}
-		r, err := c.Process.Run([]string{"echo", "ran"})
+		echo := []string{"echo", "ran"}
+		if runtime.GOOS == "windows" {
+			echo = []string{"cmd", "/c", "echo", "ran"}
+		}
+		r, err := c.Process.Run(echo)
 		if err != nil {
 			return nil, err
 		}

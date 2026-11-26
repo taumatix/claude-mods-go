@@ -80,7 +80,7 @@ pass `0` to never exit; keep state that must survive in `$.store`.
 ## Limits
 
 - Not bridged: callback methods (`$.clock.every`, `$.state`), `$.env`, `$.ui.open/resolve/blit`.
-- Binaries are located with `uname`, so Windows is not supported yet. See [ROADMAP.md](ROADMAP.md).
+- Windows is supported: `modgo build -targets windows/amd64` writes `bin/windows-amd64/<name>.exe`, and the shim detects Windows from the plugin's path and picks the binary by `%PROCESSOR_ARCHITECTURE%`. CI runs the end-to-end suite on `windows-latest`.
 - Hooks have a 10 s budget of their own execution; awaits on bridged calls do not count.
 
 ## Testing

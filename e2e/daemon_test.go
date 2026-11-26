@@ -15,7 +15,7 @@ import (
 // talks to it over its real socket, and checks it leaves on its own. It needs
 // no claude: the leak it guards against is a daemon outliving its session.
 func TestDaemonProcessExitsWhenIdle(t *testing.T) {
-	bin := filepath.Join(t.TempDir(), "probe")
+	bin := filepath.Join(t.TempDir(), exe("probe"))
 	run(t, "", "go", "build", "-o", bin, "./probe")
 
 	cmd := exec.Command(bin, "serve")
@@ -61,19 +61,14 @@ func TestDaemonProcessExitsWhenIdle(t *testing.T) {
 	}
 }
 
-// TestDaemonReloadsAfterItVanishes kills the daemon between session.start and
-// the command, and expects the shim to start a new one and still answer.
+// TestDaemonReloadsAfterItVanishes has the daemon that handled session.start
+// die when the command reaches it, and expects the shim to start a new daemon
+// and still answer.
 func TestDaemonReloadsAfterItVanishes(t *testing.T) {
 	bin := claudeBin(t)
 	plugin := buildPlugin(t, "./reload", "daemon")
-	// The daemon dies 50ms after session.start; if Claude Code ran the command
-	// inside that window the old daemon answers, and a new session tries again.
-	var out string
-	for i := 0; i < 3; i++ {
-		out = claude(t, bin, plugin, "/pid")
-		if strings.Contains(out, "kept-memory=false") {
-			return
-		}
+	out := claude(t, bin, plugin, "/pid")
+	if !strings.Contains(out, "kept-memory=false") {
+		t.Fatalf("/pid output = %q, want an answer from a fresh daemon", out)
 	}
-	t.Fatalf("/pid output = %q, want an answer from a fresh daemon", out)
 }

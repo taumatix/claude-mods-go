@@ -5,6 +5,9 @@
 - `mods`: the daemon exits after 30 minutes idle (`App.IdleTimeout`, `DefaultIdleTimeout`), so a
   daemon left behind by a dead session no longer lingers. The shim starts a new one on the next
   event.
+- Windows support: `modgo build -targets windows/amd64` (or `arm64`) writes `<name>.exe`; the shim
+  turns `file:///C:/...` into a usable path, picks the architecture without `uname`, and runs the
+  `.exe`. New `modgen.ExeName`. The end-to-end suite runs on `windows-latest` in CI.
 
 ## [0.1.0] - 2026-10-13
 
