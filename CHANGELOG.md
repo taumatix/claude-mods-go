@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] - 2026-11-27
+
+First beta. The API may still change before 0.2.0.
+
 - Tests: a live end-to-end test of `tool.call` + `next(e)`. A command raises a Bash call with
   `$.tool.call` (no model needed) and a `tool.call` hook rewrites it; the rewritten command runs.
 - `mods`: typed events and `OnX` methods for the remaining hooks: `session.end`, `session.stop`,

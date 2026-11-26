@@ -7,11 +7,17 @@ splits the work: you write handlers in Go against package `mods`; `modgo build` 
 generates a small JavaScript shim that forwards each event to your binary and carries out the
 `$` calls and `next(e)` your handler asks for.
 
+> **Beta.** `v0.2.0-beta.1` is feature-complete for the first stable release: all documented
+> events are typed, it builds for Linux, macOS and Windows, and the daemon, one-shot and auto
+> transports are tested end to end against real Claude Code. The API may still change before
+> `v0.2.0`, with a note in the [changelog](CHANGELOG.md). Pin the version: Go's `@latest` skips
+> pre-releases.
+
 ## Install
 
 ```sh
-go install github.com/taumatix/claude-mods-go/cmd/modgo@latest
-go get github.com/taumatix/claude-mods-go/mods
+go install github.com/taumatix/claude-mods-go/cmd/modgo@v0.2.0-beta.1
+go get github.com/taumatix/claude-mods-go/mods@v0.2.0-beta.1
 ```
 
 Requires Go 1.23+ and Claude Code with mods (2.1.290+). Tested against the release pinned in
