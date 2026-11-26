@@ -15,7 +15,7 @@ import (
 // talks to it over its real socket, and checks it leaves on its own. It needs
 // no claude: the leak it guards against is a daemon outliving its session.
 func TestDaemonProcessExitsWhenIdle(t *testing.T) {
-	bin := filepath.Join(t.TempDir(), "probe")
+	bin := filepath.Join(t.TempDir(), exe("probe"))
 	run(t, "", "go", "build", "-o", bin, "./probe")
 
 	cmd := exec.Command(bin, "serve")

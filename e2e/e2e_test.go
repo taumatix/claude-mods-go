@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -29,10 +30,18 @@ func claudeBin(t *testing.T) string {
 	return p
 }
 
+// exe is the file name of a built program on this OS.
+func exe(name string) string {
+	if runtime.GOOS == "windows" {
+		return name + ".exe"
+	}
+	return name
+}
+
 func buildPlugin(t *testing.T, pkg, transport string) string {
 	t.Helper()
 	dir := filepath.Join(t.TempDir(), "plugin")
-	modgo := filepath.Join(t.TempDir(), "modgo")
+	modgo := filepath.Join(t.TempDir(), exe("modgo"))
 	run(t, "", "go", "build", "-o", modgo, "../cmd/modgo")
 	run(t, "", modgo, "build", "-o", dir, "-transport", transport, pkg)
 	return dir
