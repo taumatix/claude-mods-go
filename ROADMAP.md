@@ -2,9 +2,8 @@
 
 Ordered by how much each entry limits a real deployment.
 
-1. **A live `tool.call` test.** `next(e)` through a real tool call and a rewrite are covered only by
-   unit tests; the live tests need no model and so cannot raise one. Drive it with a model-free
-   `$.tool.call` from a command, or a gated live run.
+1. **A live deny and a live `tool.check`.** `tool.call` rewrite is now driven end to end through a
+   command's `$.tool.call`; denying a call and `tool.check` answers are still unit-tested only.
 2. **`claude plugin test` support.** It stubs `$.process.*`, so a Go mod cannot use it; ship a
    test double for the bridge or a `modgo test` that runs the live path.
 3. **Bridge more of `$`.** Callback methods (`$.clock.every`, `$.state`), `$.env` and the drawing

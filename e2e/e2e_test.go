@@ -106,3 +106,14 @@ func TestTallyExample(t *testing.T) {
 		t.Fatalf("/tally output = %q", out)
 	}
 }
+
+// TestToolCallRewriteThroughNext raises a real Bash call from a command with
+// $.tool.call, so no model is needed, and has a tool.call hook rewrite it.
+func TestToolCallRewriteThroughNext(t *testing.T) {
+	bin := claudeBin(t)
+	plugin := buildPlugin(t, "./toolcall", "daemon")
+	out := claude(t, bin, plugin, "/rewrite")
+	if !strings.Contains(out, "rewritten") || strings.Contains(out, "bash said: original") {
+		t.Fatalf("/rewrite output = %q, want the hook's rewritten command to have run", out)
+	}
+}

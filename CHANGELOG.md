@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Tests: a live end-to-end test of `tool.call` + `next(e)`. A command raises a Bash call with
+  `$.tool.call` (no model needed) and a `tool.call` hook rewrites it; the rewritten command runs.
 - `mods`: typed events and `OnX` methods for the remaining hooks: `session.end`, `session.stop`,
   `session.compact`, `turn.start`, `prompt.fill`, `prompt.suggest`, `tool.describe`, `tool.offer`,
   `command.describe`, `config.set`, `agent.spawn`, `agent.offer`. The ones with a natural filter
