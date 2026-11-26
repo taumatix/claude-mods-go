@@ -3,17 +3,26 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/taumatix/claude-mods-go/mods"
 )
 
 func main() {
 	app := mods.New("probe").
+		IdleTimeout(time.Second).
 		Uses(mods.CommandRegister, mods.FSWrite, mods.FSRead, mods.ProcessRun, mods.SessionCwd, mods.UIToast)
 
+	sawStart := false
+
 	app.OnSessionStart(func(c *mods.Ctx, e mods.SessionStartEvent) (any, error) {
+		sawStart = true
 		if err := c.Command.Register(mods.CommandSpec{Name: "probe", Description: "bridge probe"}); err != nil {
+			return nil, err
+		}
+		if err := c.Command.Register(mods.CommandSpec{Name: "pid", Description: "daemon process id"}); err != nil {
 			return nil, err
 		}
 		if err := c.Command.Register(mods.CommandSpec{Name: "boom", Description: "fails on purpose"}); err != nil {
@@ -36,6 +45,10 @@ func main() {
 			return nil, err
 		}
 		return mods.Text(fmt.Sprintf("read=%s proc=%s", got, strings.TrimSpace(r.Stdout))), nil
+	})
+
+	app.OnCommand("pid", func(c *mods.Ctx, e mods.CommandRunEvent) (any, error) {
+		return mods.Text(fmt.Sprintf("pid=%d kept-memory=%t", os.Getpid(), sawStart)), nil
 	})
 
 	app.OnCommand("boom", func(c *mods.Ctx, e mods.CommandRunEvent) (any, error) {

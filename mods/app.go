@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 )
 
 // Handler handles one event. e is the event exactly as Claude Code passed it
@@ -35,17 +36,39 @@ type registration struct {
 	h    Handler
 }
 
+// DefaultIdleTimeout is how long the daemon waits with nothing to do before it
+// exits. Claude Code normally stops it at session end; this covers a daemon
+// that was left behind.
+const DefaultIdleTimeout = 30 * time.Minute
+
+// MinIdleTimeout is the shortest idle timeout IdleTimeout accepts.
+const MinIdleTimeout = time.Second
+
 // App is a mod: its hooks and the mods API methods it may call.
 type App struct {
 	name, version, description string
 	regs                       []registration
 	uses                       map[Method]bool
+	idleTimeout                time.Duration
 }
 
 // New starts a mod. name becomes the plugin name; Claude Code allows letters,
 // digits and hyphens, and refuses a name that begins with "claude-".
 func New(name string) *App {
-	return &App{name: name, uses: map[Method]bool{}}
+	return &App{name: name, uses: map[Method]bool{}, idleTimeout: DefaultIdleTimeout}
+}
+
+// IdleTimeout sets how long the daemon transport may sit idle before the
+// process exits (DefaultIdleTimeout if unset). The next event starts a fresh
+// daemon, so anything a handler kept in memory is gone: keep durable state in
+// $.store, or pass 0 to never exit. A positive d is raised to MinIdleTimeout:
+// a daemon that expires before the shim's first request reaches it is useless.
+func (a *App) IdleTimeout(d time.Duration) *App {
+	if d > 0 && d < MinIdleTimeout {
+		d = MinIdleTimeout
+	}
+	a.idleTimeout = d
+	return a
 }
 
 // Version sets the plugin version written to plugin.json.
